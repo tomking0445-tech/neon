@@ -1,0 +1,105 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  passwordHash String
+  name         String
+  isCreator    Boolean    @default(false)
+  createdAt    DateTime   @default(now())
+
+  contents     Content[]
+  reviews      Review[]
+  posts        Post[]
+  comments     Comment[]
+  purchases    Purchase[]
+}
+
+model Content {
+  id          String     @id @default(cuid())
+  name        String
+  category    String // webgame | image | audio | asset
+  price       Int // 원(KRW), 0 이상
+  tags        String[]  @default([])
+  art         String     @default("orb")
+  initial     String     @default("N")
+  description String?
+  previewUrl  String?
+  fileUrl     String? // 실제 결제 검증 후에만 클라이언트에 내려줄 것
+  published   Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  creatorId   String
+  creator     User       @relation(fields: [creatorId], references: [id])
+
+  reviews     Review[]
+  posts       Post[]
+  purchases   Purchase[]
+
+  @@index([category])
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  rating    Int // 1~5
+  text      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  contentId String
+  content   Content  @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@unique([contentId, userId]) // 1인 1리뷰
+}
+
+model Post {
+  id        String    @id @default(cuid())
+  board     String // free | guide | bug
+  title     String
+  body      String
+  createdAt DateTime  @default(now())
+
+  contentId String
+  content   Content   @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
+
+  comments  Comment[]
+
+  @@index([contentId, board])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  text      String
+  createdAt DateTime @default(now())
+
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model Purchase {
+  id        String   @id @default(cuid())
+  amount    Int
+  method    String   @default("demo") // 실제 PG 연동 후 'paypal' | 'kr-pg' 등으로 대체
+  createdAt DateTime @default(now())
+
+  contentId String
+  content   Content  @relation(fields: [contentId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+}
