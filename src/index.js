@@ -1,5 +1,6 @@
 require('dotenv').config();
 
+const path = require('path');
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -16,7 +17,9 @@ const app = express();
 // Railway/프록시 뒤에서 rate-limit이 IP를 올바르게 인식하게 합니다.
 app.set('trust proxy', 1);
 
-app.use(helmet());
+// public/index.html(프론트엔드)이 인라인 <style>/<script>를 그대로 쓰고 있어서
+// 기본 CSP를 켜면 막힙니다. 실제 런칭 전에는 nonce 기반 CSP로 다시 조여주세요.
+app.use(helmet({ contentSecurityPolicy: false }));
 app.use(express.json({ limit: '1mb' }));
 
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || '*').split(',').map(s => s.trim());
@@ -37,8 +40,15 @@ app.use('/api/contents/:contentId/posts', postsRoutes);
 app.use('/api/posts', postsTopRoutes);
 app.use('/api/comments', commentsRoutes);
 
+// 프론트엔드(loopcade.html)를 같은 서버에서 정적으로 서빙합니다.
+// 같은 출처(origin)이므로 Claude Artifact 샌드박스의 외부 fetch 제한이나 CORS 문제가 없습니다.
+app.use(express.static(path.join(__dirname, '..', 'public')));
+
 app.use((req, res) => {
-  res.status(404).json({ error: 'NOT_FOUND', message: '요청한 API가 없습니다.' });
+  if (req.path.startsWith('/api/')) {
+    return res.status(404).json({ error: 'NOT_FOUND', message: '요청한 API가 없습니다.' });
+  }
+  res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
 });
 
 // eslint-disable-next-line no-unused-vars
