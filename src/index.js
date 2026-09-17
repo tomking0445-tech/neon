@@ -17,7 +17,7 @@ const app = express();
 // Railway/프록시 뒤에서 rate-limit이 IP를 올바르게 인식하게 합니다.
 app.set('trust proxy', 1);
 
-// public/index.html(프론트엔드)이 인라인 <style>/<script>를 그대로 쓰고 있어서
+// index.html(프론트엔드)이 인라인 <style>/<script>를 그대로 쓰고 있어서
 // 기본 CSP를 켜면 막힙니다. 실제 런칭 전에는 nonce 기반 CSP로 다시 조여주세요.
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(express.json({ limit: '1mb' }));
@@ -40,15 +40,17 @@ app.use('/api/contents/:contentId/posts', postsRoutes);
 app.use('/api/posts', postsTopRoutes);
 app.use('/api/comments', commentsRoutes);
 
-// 프론트엔드(loopcade.html)를 같은 서버에서 정적으로 서빙합니다.
-// 같은 출처(origin)이므로 Claude Artifact 샌드박스의 외부 fetch 제한이나 CORS 문제가 없습니다.
-app.use(express.static(path.join(__dirname, '..', 'public')));
+// 프론트엔드(index.html)를 같은 서버에서 서빙합니다. 저장소 루트에 있는 단일 파일이고
+// CSS/JS가 전부 그 안에 인라인이라, 디렉터리 전체를 static으로 열 필요 없이 이 파일 하나만
+// 내려주면 됩니다 (node_modules, src, prisma 등 나머지 저장소 내용은 노출되지 않습니다).
+// 같은 출처(origin)이므로 Claude Artifact 샌드박스의 외부 fetch 제한이나 CORS 문제도 없습니다.
+const INDEX_HTML_PATH = path.join(__dirname, '..', 'index.html');
 
 app.use((req, res) => {
   if (req.path.startsWith('/api/')) {
     return res.status(404).json({ error: 'NOT_FOUND', message: '요청한 API가 없습니다.' });
   }
-  res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
+  res.sendFile(INDEX_HTML_PATH);
 });
 
 // eslint-disable-next-line no-unused-vars
