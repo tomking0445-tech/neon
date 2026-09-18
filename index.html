@@ -1,6 +1,6 @@
 <meta name="theme-color" content="#0b0b10" />
 <meta name="description" content="크리에이터가 만드는 AI 콘텐츠 마켓플레이스. 웹게임, 이미지, 사운드, 에셋을 발견하세요." />
-<title>NEON — AI Creator Marketplace</title>
+<title>PikLoom — AI Creator Marketplace</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800;900&display=swap');
 
@@ -69,9 +69,15 @@
   .logo-mark {
     width: 33px; height: 33px; border-radius: 10px;
     background: var(--lime); color: #15181a;
-    display: grid; place-items: center; transform: rotate(-8deg);
-    font-size: 31px; line-height: 1;
+    display: grid; place-items: center; position: relative; overflow: hidden;
+    font-size: 21px; line-height: 1; font-weight: 900;
   }
+  .logo-mark::before {
+    content: ""; position: absolute; left: -3px; bottom: -3px; width: 16px; height: 9px;
+    background: var(--purple); transform: rotate(-40deg);
+  }
+  .logo-mark span { position: relative; z-index: 1; }
+  .logo-lime { color: var(--lime); }
   .nav-links { display: flex; align-items: center; gap: 28px; color: var(--muted); font-size: 18px; font-weight: 600; }
   .nav-links a:hover, .nav-links .active { color: #fff; }
   .nav-actions { margin-left: auto; display: flex; align-items: center; gap: 10px; }
@@ -355,7 +361,7 @@
   footer { border-top: 1px solid var(--border); padding: 32px 0 25px; }
   .footer-main { display: flex; justify-content: space-between; gap: 25px; }
   footer .logo { font-size: 26px; }
-  footer .logo-mark { width: 27px; height: 27px; font-size: 27px; border-radius: 8px; }
+  footer .logo-mark { width: 27px; height: 27px; font-size: 17px; border-radius: 8px; }
   .footer-desc { color: #747184; font-size: 16px; line-height: 1.9; max-width: 450px; }
   .footer-links { display: flex; gap: 22px; flex-wrap: wrap; align-items: flex-start; font-size: 16px; color: #a49eb5; }
   .footer-links button { background: none; border: 0; padding: 0; color: inherit; font-size: inherit; }
@@ -465,7 +471,7 @@
 
 <header class="header">
   <nav class="container nav" aria-label="메인 내비게이션">
-    <a href="#" class="logo" aria-label="NEON 홈"><span class="logo-mark" aria-hidden="true">ϟ</span>NEON<span style="color:var(--lime)">.</span></a>
+    <a href="#" class="logo" aria-label="PikLoom 홈"><span class="logo-mark" aria-hidden="true"><span>P</span></span><span class="logo-word">ikL<span class="logo-lime">oo</span>m</span></a>
     <div class="nav-links">
       <a href="#market" class="active">둘러보기</a>
       <a href="#market" data-category-link="webgame">웹게임</a>
@@ -473,7 +479,7 @@
       <a href="#creators">크리에이터</a>
     </div>
     <div class="nav-actions">
-      <!-- 인증 연동 후 NEON.setUser(user)를 호출하면 업로드/정산 버튼이 표시됩니다. -->
+      <!-- 인증 연동 후 PikLoom.setUser(user)를 호출하면 업로드/정산 버튼이 표시됩니다. -->
       <button class="btn" id="settlement-button" data-action="settlement" hidden>정산</button>
       <button class="btn" id="admin-button" data-action="admin-panel" hidden>관리자 정산</button>
       <button class="btn btn-purple" id="upload-button" data-action="upload" hidden>
@@ -733,8 +739,8 @@
   <div class="container">
     <div class="footer-main">
       <div>
-        <a href="#" class="logo" aria-label="NEON 홈"><span class="logo-mark" aria-hidden="true">ϟ</span>NEON.</a>
-        <p class="footer-desc">AI가 넓힌 가능성, 크리에이터가 완성하는 가치.<br>NEON은 제작자와 이용자를 연결하는 AI 생성 콘텐츠 마켓플레이스입니다.</p>
+        <a href="#" class="logo" aria-label="PikLoom 홈"><span class="logo-mark" aria-hidden="true"><span>P</span></span><span class="logo-word">ikL<span class="logo-lime">oo</span>m</span></a>
+        <p class="footer-desc">AI가 넓힌 가능성, 크리에이터가 완성하는 가치.<br>PikLoom은 제작자와 이용자를 연결하는 AI 생성 콘텐츠 마켓플레이스입니다.</p>
       </div>
       <div class="footer-links">
         <button data-action="terms">이용약관</button>
@@ -745,7 +751,7 @@
     </div>
     <!-- 실제 출시 전 사업자 정보, 판매 중개 고지, 정책 페이지를 연결하세요. -->
     <div class="footer-bottom">
-      <span>© NEON. Creator marketplace concept.</span>
+      <span>© PikLoom. Creator marketplace concept.</span>
       <span class="footer-status"><span class="status-dot"></span>한국 결제 우선 지원 예정 · US / JP / KR</span>
     </div>
   </div>
@@ -758,18 +764,18 @@
     백엔드 / 인증 연동 지점
 
     1. 인증 상태:
-       window.NEON.setUser({ id: '...', name: '...' });
-       window.NEON.setUser(null);
+       window.PikLoom.setUser({ id: '...', name: '...' });
+       window.PikLoom.setUser(null);
 
     2. 액션 처리:
-       window.addEventListener('neon:action', (event) => {
+       window.addEventListener('pikloom:action', (event) => {
          event.preventDefault(); // 기본 데모 안내 비활성화
          const { action, contentId, user } = event.detail;
          // 로그인, 업로드, 충전, 구매, 약관 페이지 등 연결
        });
 
     3. 실제 콘텐츠:
-       window.NEON.setContents([...]);
+       window.PikLoom.setContents([...]);
        아래 demoContents의 필드를 기준으로 매핑하세요.
 
     주의:
@@ -798,7 +804,7 @@
   // (Claude Artifact 샌드박스에서는 외부 도메인으로의 fetch가 막혀 있어 절대경로 방식은 동작하지 않습니다.)
   const API_BASE = '';
   let authToken = null;
-  try { authToken = localStorage.getItem('neon_token'); } catch (error) { /* 접근 불가 시 비로그인으로 진행 */ }
+  try { authToken = localStorage.getItem('pikloom_token'); } catch (error) { /* 접근 불가 시 비로그인으로 진행 */ }
 
   async function apiFetch(path, options = {}) {
     const headers = Object.assign({ 'Content-Type': 'application/json' }, options.headers || {});
@@ -817,8 +823,8 @@
   function setAuthToken(token) {
     authToken = token;
     try {
-      if (token) localStorage.setItem('neon_token', token);
-      else localStorage.removeItem('neon_token');
+      if (token) localStorage.setItem('pikloom_token', token);
+      else localStorage.removeItem('pikloom_token');
     } catch (error) { /* 저장 실패해도 이번 세션에서는 계속 로그인 상태 유지 */ }
   }
 
@@ -826,7 +832,7 @@
     try {
       const data = await apiFetch('/api/contents');
       if (data && Array.isArray(data.items)) {
-        window.NEON.setContents(data.items);
+        window.PikLoom.setContents(data.items);
         return;
       }
     } catch (error) {
@@ -839,7 +845,7 @@
     if (!authToken) return;
     try {
       const data = await apiFetch('/api/auth/me');
-      if (data && data.user) window.NEON.setUser(data.user);
+      if (data && data.user) window.PikLoom.setUser(data.user);
     } catch (error) {
       setAuthToken(null);
     }
@@ -1588,7 +1594,7 @@
   }
 
   async function dispatchAction(action, contentId = null) {
-    const event = new CustomEvent('neon:action', {
+    const event = new CustomEvent('pikloom:action', {
       cancelable: true,
       detail: { action, contentId, user: state.user }
     });
@@ -1599,7 +1605,7 @@
     if (action === 'account') {
       // 데모 환경: 마이페이지가 없으니 계정 버튼은 바로 로그아웃으로 동작합니다.
       setAuthToken(null);
-      window.NEON.setUser(null);
+      window.PikLoom.setUser(null);
       notify('로그아웃했어요.');
       return;
     }
@@ -1678,7 +1684,7 @@
         body: JSON.stringify(payload)
       });
       setAuthToken(result.token);
-      window.NEON.setUser(result.user);
+      window.PikLoom.setUser(result.user);
       notify(mode === 'signup' ? `환영해요, ${result.user.name}님!` : `다시 오셨네요, ${result.user.name}님!`);
       closeAuthModal();
       await loadContentsFromServer();
@@ -1724,7 +1730,7 @@
     render();
   });
 
-  window.NEON = {
+  window.PikLoom = {
     setUser(user) {
       state.user = user || null;
       document.getElementById('upload-button').hidden = !state.user;
