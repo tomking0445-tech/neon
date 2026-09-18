@@ -317,6 +317,28 @@
   }
   .modal-close:hover { color: #fff; }
   .modal .field { margin: 12px 0; }
+  .modal-wide { width: min(760px, 100%); }
+  .settle-tabs { display: flex; gap: 8px; margin: 4px 0 18px; flex-wrap: wrap; }
+  .settle-tab { padding: 8px 13px; border-radius: 9px; border: 1px solid var(--border); background: transparent; color: var(--muted); font-size: 12px; font-weight: 600; }
+  .settle-tab[aria-selected="true"] { background: var(--purple); border-color: var(--purple); color: #151023; }
+  .method-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 10px; margin: 14px 0; }
+  .method-option { display: flex; align-items: center; gap: 9px; border: 1px solid var(--border); border-radius: 11px; padding: 12px 14px; cursor: pointer; font-size: 12px; font-weight: 600; }
+  .method-option:hover { border-color: #ffffff40; }
+  .method-option input { margin: 0; }
+  .method-option[data-checked="true"] { border-color: var(--lime); background: #d1fc8412; }
+  .summary-box { border: 1px solid var(--border); border-radius: 12px; padding: 16px; background: #101017; margin-bottom: 16px; }
+  .summary-box dl { margin: 0; }
+  .summary-box dl div { display: flex; justify-content: space-between; font-size: 12px; margin: 7px 0; }
+  .summary-box dt { color: var(--muted); }
+  .settle-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  .settle-table th, .settle-table td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  .settle-table th { color: var(--muted); font-weight: 600; }
+  .settle-table-wrap { overflow-x: auto; margin-top: 10px; }
+  .badge { display: inline-block; padding: 3px 8px; border-radius: 6px; font-size: 10px; font-weight: 700; }
+  .badge-pending { background: #ffcf6820; color: #ffcf68; }
+  .badge-paid { background: #d1fc8420; color: var(--lime); }
+  .admin-toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
+  .admin-toolbar input { padding: 9px 10px; border-radius: 8px; border: 1px solid var(--border); background: #101017; color: var(--text); width: 90px; }
 
   /* Banners */
   .bottom-grid { display: grid; grid-template-columns: 1.35fr 1fr; gap: 20px; margin: 51px 0 55px; }
@@ -451,7 +473,9 @@
       <a href="#creators">크리에이터</a>
     </div>
     <div class="nav-actions">
-      <!-- 인증 연동 후 NEON.setUser(user)를 호출하면 업로드 버튼이 표시됩니다. -->
+      <!-- 인증 연동 후 NEON.setUser(user)를 호출하면 업로드/정산 버튼이 표시됩니다. -->
+      <button class="btn" id="settlement-button" data-action="settlement" hidden>정산</button>
+      <button class="btn" id="admin-button" data-action="admin-panel" hidden>관리자 정산</button>
       <button class="btn btn-purple" id="upload-button" data-action="upload" hidden>
         <svg class="icon" aria-hidden="true"><use href="#i-upload"/></svg>업로드
       </button>
@@ -656,6 +680,52 @@
       </label>
       <button type="submit" class="btn btn-purple" style="width:100%;margin-top:14px;">업로드</button>
     </form>
+  </div>
+</div>
+
+<div class="modal-overlay" id="payment-modal" hidden>
+  <div class="modal">
+    <button type="button" class="modal-close" id="payment-modal-close" aria-label="닫기">×</button>
+    <h2>결제수단 선택</h2>
+    <p class="small muted" id="payment-modal-desc" style="margin-top:-8px;">구매하실 콘텐츠의 결제수단을 골라주세요.</p>
+    <form id="payment-form">
+      <div class="method-grid" id="payment-method-grid">
+        <label class="method-option"><input type="radio" name="method" value="card" checked>신용/체크카드</label>
+        <label class="method-option"><input type="radio" name="method" value="kakaopay">카카오페이</label>
+        <label class="method-option"><input type="radio" name="method" value="tosspay">토스페이</label>
+        <label class="method-option"><input type="radio" name="method" value="bank">계좌이체</label>
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%;">결제하기</button>
+      <p class="small muted" style="margin-top:12px;">* 데모 환경입니다. 실제 결제·청구는 발생하지 않습니다.</p>
+    </form>
+  </div>
+</div>
+
+<div class="modal-overlay" id="settlement-modal" hidden>
+  <div class="modal modal-wide">
+    <button type="button" class="modal-close" id="settlement-modal-close" aria-label="닫기">×</button>
+    <h2>판매 정산</h2>
+    <div class="settle-tabs" role="tablist">
+      <button class="settle-tab" data-settle-tab="summary" aria-selected="true">이번 정산 요약</button>
+      <button class="settle-tab" data-settle-tab="account">정산 계좌</button>
+      <button class="settle-tab" data-settle-tab="history">정산 내역</button>
+    </div>
+    <div id="settlement-panel">불러오는 중…</div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="admin-modal" hidden>
+  <div class="modal modal-wide">
+    <button type="button" class="modal-close" id="admin-modal-close" aria-label="닫기">×</button>
+    <h2>관리자 정산</h2>
+    <div class="admin-toolbar">
+      <label class="small muted">연도 <input type="number" id="admin-year" /></label>
+      <label class="small muted">월 <input type="number" id="admin-month" min="1" max="12" /></label>
+      <button type="button" class="btn" id="admin-preview-btn">미리보기</button>
+      <button type="button" class="btn btn-purple" id="admin-generate-btn">이 달 정산 확정</button>
+      <button type="button" class="btn" id="admin-csv-btn">전체 CSV 다운로드</button>
+    </div>
+    <div id="admin-panel">연도/월을 고르고 미리보기를 눌러주세요.</div>
   </div>
 </div>
 
@@ -1258,6 +1328,257 @@
     document.getElementById('upload-form').reset();
   }
 
+  /* ---------- 결제수단 선택 → 구매 ---------- */
+  let pendingPurchaseId = null;
+
+  function openPaymentModal(contentId) {
+    pendingPurchaseId = contentId;
+    const item = findContent(contentId);
+    document.getElementById('payment-modal-desc').textContent = item
+      ? `${item.name} · ₩${item.price.toLocaleString('ko-KR')}의 결제수단을 골라주세요.`
+      : '결제수단을 골라주세요.';
+    document.getElementById('payment-form').reset();
+    document.querySelectorAll('#payment-method-grid .method-option').forEach((label, i) => {
+      label.dataset.checked = String(i === 0);
+    });
+    document.getElementById('payment-modal').hidden = false;
+  }
+
+  function closePaymentModal() {
+    document.getElementById('payment-modal').hidden = true;
+    pendingPurchaseId = null;
+  }
+
+  document.getElementById('payment-method-grid').addEventListener('change', () => {
+    document.querySelectorAll('#payment-method-grid .method-option').forEach(label => {
+      label.dataset.checked = String(label.querySelector('input').checked);
+    });
+  });
+
+  document.getElementById('payment-modal-close').addEventListener('click', closePaymentModal);
+  document.getElementById('payment-form').addEventListener('submit', async event => {
+    event.preventDefault();
+    if (!pendingPurchaseId) return closePaymentModal();
+    const method = new FormData(event.target).get('method') || 'card';
+    const contentId = pendingPurchaseId;
+    try {
+      const data = await apiFetch(`/api/contents/${encodeURIComponent(contentId)}/purchase`, {
+        method: 'POST',
+        body: JSON.stringify({ method })
+      });
+      notify((data && data.message) || '구매가 완료됐어요.');
+      closePaymentModal();
+    } catch (error) {
+      notify(error.message);
+    }
+  });
+
+  /* ---------- 크리에이터 판매 정산 ---------- */
+  const won = value => `₩${Number(value || 0).toLocaleString('ko-KR')}`;
+  let settlementTab = 'summary';
+  let settlementData = null;
+
+  function openSettlementModal() {
+    document.getElementById('settlement-modal').hidden = false;
+    settlementTab = 'summary';
+    setSettleTab('summary');
+    loadSettlementData();
+  }
+
+  function closeSettlementModal() {
+    document.getElementById('settlement-modal').hidden = true;
+  }
+
+  function setSettleTab(tab) {
+    settlementTab = tab;
+    document.querySelectorAll('[data-settle-tab]').forEach(button => {
+      button.setAttribute('aria-selected', String(button.dataset.settleTab === tab));
+    });
+    renderSettlementPanel();
+  }
+
+  async function loadSettlementData() {
+    const panel = document.getElementById('settlement-panel');
+    panel.innerHTML = '불러오는 중…';
+    try {
+      settlementData = await apiFetch('/api/settlements/me');
+      renderSettlementPanel();
+    } catch (error) {
+      panel.innerHTML = `<p class="small muted">정산 정보를 불러오지 못했어요. ${escapeHTML(error.message)}</p>`;
+    }
+  }
+
+  function renderSettlementPanel() {
+    const panel = document.getElementById('settlement-panel');
+    if (!settlementData) return;
+    const { pending, account, settlements, feeRate } = settlementData;
+
+    if (settlementTab === 'summary') {
+      panel.innerHTML = `
+        <div class="summary-box">
+          <p class="small muted" style="margin:0 0 10px;">${escapeHTML(pending.note)}</p>
+          <dl>
+            <div><dt>판매액 합계</dt><dd>${won(pending.grossAmount)}</dd></div>
+            <div><dt>플랫폼 수수료 (${Math.round(feeRate * 100)}%)</dt><dd>-${won(pending.feeAmount)}</dd></div>
+            <div><dt><strong>예상 지급액</strong></dt><dd><strong>${won(pending.netAmount)}</strong></dd></div>
+            <div><dt>구매 건수</dt><dd>${pending.itemCount}건</dd></div>
+          </dl>
+        </div>
+        ${account.registered ? `<p class="small muted">정산 계좌: ${escapeHTML(account.bank)} ${escapeHTML(account.accountNumber)} (${escapeHTML(account.holder)})</p>`
+          : `<p class="small" style="color:#ffcf68;">아직 정산 계좌가 등록되지 않았어요. '정산 계좌' 탭에서 등록해 주세요.</p>`}
+      `;
+    } else if (settlementTab === 'account') {
+      panel.innerHTML = `
+        <form id="settlement-account-form">
+          <label class="field">은행
+            <input type="text" name="bank" required maxlength="40" placeholder="예: 카카오뱅크" value="${escapeHTML(account.bank || '')}" />
+          </label>
+          <label class="field">계좌번호
+            <input type="text" name="accountNumber" required maxlength="40" placeholder="숫자와 - 만 입력" value="${escapeHTML(account.accountNumber || '')}" />
+          </label>
+          <label class="field">예금주
+            <input type="text" name="holder" required maxlength="40" placeholder="예금주명" value="${escapeHTML(account.holder || '')}" />
+          </label>
+          <button type="submit" class="btn btn-purple" style="width:100%;margin-top:8px;">계좌 저장</button>
+        </form>
+        <p class="small muted" style="margin-top:12px;">* 정산 계좌 정보는 실제 지급 처리 시 스냅샷으로 함께 저장돼요.</p>
+      `;
+      document.getElementById('settlement-account-form').addEventListener('submit', async event => {
+        event.preventDefault();
+        const data = new FormData(event.target);
+        try {
+          await apiFetch('/api/settlements/account', {
+            method: 'PUT',
+            body: JSON.stringify({
+              bank: data.get('bank'),
+              accountNumber: data.get('accountNumber'),
+              holder: data.get('holder')
+            })
+          });
+          notify('정산 계좌를 저장했어요.');
+          await loadSettlementData();
+          setSettleTab('summary');
+        } catch (error) {
+          notify(error.message);
+        }
+      });
+    } else {
+      const rows = (settlements || []).map(s => `
+        <tr>
+          <td>${s.periodYear}.${String(s.periodMonth).padStart(2, '0')}</td>
+          <td>${won(s.grossAmount)}</td>
+          <td>-${won(s.feeAmount)}</td>
+          <td>${won(s.netAmount)}</td>
+          <td>${s.itemCount}건</td>
+          <td><span class="badge ${s.status === 'paid' ? 'badge-paid' : 'badge-pending'}">${s.status === 'paid' ? '지급완료' : '지급대기'}</span></td>
+        </tr>
+      `).join('');
+      panel.innerHTML = `
+        <div class="settle-table-wrap">
+          <table class="settle-table">
+            <thead><tr><th>연월</th><th>판매액</th><th>수수료</th><th>지급액</th><th>건수</th><th>상태</th></tr></thead>
+            <tbody>${rows || `<tr><td colspan="6" class="small muted">확정된 정산 내역이 아직 없어요.</td></tr>`}</tbody>
+          </table>
+        </div>
+      `;
+    }
+  }
+
+  document.getElementById('settlement-modal-close').addEventListener('click', closeSettlementModal);
+  document.querySelectorAll('[data-settle-tab]').forEach(button => {
+    button.addEventListener('click', () => setSettleTab(button.dataset.settleTab));
+  });
+
+  /* ---------- 관리자 정산 ---------- */
+  let adminPreview = null;
+
+  function openAdminModal() {
+    const now = new Date();
+    document.getElementById('admin-year').value = now.getFullYear();
+    document.getElementById('admin-month').value = now.getMonth() + 1;
+    document.getElementById('admin-panel').innerHTML = '연도/월을 고르고 미리보기를 눌러주세요.';
+    document.getElementById('admin-modal').hidden = false;
+  }
+
+  function closeAdminModal() {
+    document.getElementById('admin-modal').hidden = true;
+  }
+
+  function currentAdminPeriod() {
+    return {
+      year: Number(document.getElementById('admin-year').value) || new Date().getFullYear(),
+      month: Number(document.getElementById('admin-month').value) || new Date().getMonth() + 1
+    };
+  }
+
+  function renderAdminPreview() {
+    const panel = document.getElementById('admin-panel');
+    if (!adminPreview) return;
+    const rows = (adminPreview.items || []).map(row => `
+      <tr>
+        <td>${escapeHTML(row.creatorName)}</td>
+        <td class="small muted">${escapeHTML(row.creatorEmail)}</td>
+        <td>${won(row.grossAmount)}</td>
+        <td>-${won(row.feeAmount)}</td>
+        <td>${won(row.netAmount)}</td>
+        <td>${row.itemCount}건</td>
+      </tr>
+    `).join('');
+    panel.innerHTML = `
+      <p class="small muted">${adminPreview.year}년 ${adminPreview.month}월 · 아직 정산 확정 전인 판매분 미리보기입니다.</p>
+      <div class="settle-table-wrap">
+        <table class="settle-table">
+          <thead><tr><th>크리에이터</th><th>이메일</th><th>판매액</th><th>수수료</th><th>지급액</th><th>건수</th></tr></thead>
+          <tbody>${rows || `<tr><td colspan="6" class="small muted">해당 연월에 미확정 판매 건이 없어요.</td></tr>`}</tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  document.getElementById('admin-modal-close').addEventListener('click', closeAdminModal);
+  document.getElementById('admin-preview-btn').addEventListener('click', async () => {
+    const { year, month } = currentAdminPeriod();
+    try {
+      adminPreview = await apiFetch(`/api/admin/settlements/preview?year=${year}&month=${month}`);
+      renderAdminPreview();
+    } catch (error) {
+      notify(error.message);
+    }
+  });
+  document.getElementById('admin-generate-btn').addEventListener('click', async () => {
+    const { year, month } = currentAdminPeriod();
+    try {
+      const result = await apiFetch('/api/admin/settlements/generate', {
+        method: 'POST',
+        body: JSON.stringify({ year, month })
+      });
+      notify(result.message || `${year}년 ${month}월 정산을 확정했어요.`);
+      adminPreview = await apiFetch(`/api/admin/settlements/preview?year=${year}&month=${month}`);
+      renderAdminPreview();
+    } catch (error) {
+      notify(error.message);
+    }
+  });
+  document.getElementById('admin-csv-btn').addEventListener('click', async () => {
+    try {
+      const response = await fetch(`${API_BASE}/api/admin/settlements/export.csv`, {
+        headers: authToken ? { Authorization: `Bearer ${authToken}` } : {}
+      });
+      if (!response.ok) throw new Error(`CSV 다운로드에 실패했어요 (${response.status})`);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'settlements.csv';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      notify(error.message);
+    }
+  });
+
   function setCategory(category) {
     state.category = category;
     document.querySelectorAll('[data-category]').forEach(button => {
@@ -1288,13 +1609,15 @@
     }
     if (action === 'purchase') {
       if (!state.user) { notify('구매하려면 먼저 로그인해 주세요.'); return openAuthModal('login'); }
-      try {
-        const data = await apiFetch(`/api/contents/${encodeURIComponent(contentId)}/purchase`, { method: 'POST' });
-        notify((data && data.message) || '구매가 완료됐어요.');
-      } catch (error) {
-        notify(error.message);
-      }
-      return;
+      return openPaymentModal(contentId);
+    }
+    if (action === 'settlement') {
+      if (!state.user) { notify('정산 화면은 로그인 후 이용할 수 있어요.'); return openAuthModal('login'); }
+      return openSettlementModal();
+    }
+    if (action === 'admin-panel') {
+      if (!state.user || !state.user.isAdmin) { notify('관리자만 접근할 수 있어요.'); return; }
+      return openAdminModal();
     }
 
     const messages = {
@@ -1405,6 +1728,8 @@
     setUser(user) {
       state.user = user || null;
       document.getElementById('upload-button').hidden = !state.user;
+      document.getElementById('settlement-button').hidden = !state.user;
+      document.getElementById('admin-button').hidden = !(state.user && state.user.isAdmin);
       const button = document.getElementById('auth-button');
       button.textContent = state.user ? '내 계정' : '로그인';
       button.dataset.action = state.user ? 'account' : 'login';

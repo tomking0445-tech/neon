@@ -13,13 +13,21 @@ model User {
   passwordHash String
   name         String
   isCreator    Boolean    @default(false)
+  isAdmin      Boolean    @default(false)
   createdAt    DateTime   @default(now())
+
+  // 판매 정산금을 받을 계좌 정보. 크리에이터가 직접 입력/수정합니다.
+  // 데모 수준 저장이며, 실제 서비스에서는 암호화 저장 및 본인 명의 확인이 필요합니다.
+  settlementBank          String?
+  settlementAccountNumber String?
+  settlementHolder        String?
 
   contents     Content[]
   reviews      Review[]
   posts        Post[]
   comments     Comment[]
   purchases    Purchase[]
+  settlements  Settlement[]
 }
 
 model Content {
@@ -91,15 +99,50 @@ model Comment {
 }
 
 model Purchase {
-  id        String   @id @default(cuid())
-  amount    Int
-  method    String   @default("demo") // 실제 PG 연동 후 'paypal' | 'kr-pg' 등으로 대체
-  createdAt DateTime @default(now())
+  id         String   @id @default(cuid())
+  amount     Int
+  method     String   @default("demo") // 결제수단: card | kakaopay | tosspay | bank | demo. 실제 PG 연동 후 웹훅 검증으로 교체하세요.
+  feeAmount  Int      @default(0) // 결제 시점의 수수료율로 계산해 스냅샷 저장 (이후 수수료율이 바뀌어도 과거 거래는 영향받지 않음)
+  netAmount  Int      @default(0) // amount - feeAmount, 크리에이터에게 정산될 금액
+  createdAt  DateTime @default(now())
 
   contentId String
   content   Content  @relation(fields: [contentId], references: [id])
   userId    String
   user      User     @relation(fields: [userId], references: [id])
 
+  // 정산이 확정되면 Settlement에 묶이고 settled=true가 됩니다.
+  settled      Boolean     @default(false)
+  settlementId String?
+  settlement   Settlement? @relation(fields: [settlementId], references: [id])
+
   @@index([userId])
+  @@index([settlementId])
+}
+
+// 월별 정산 단위: 크리에이터 1명 x 특정 연월 = 레코드 1개.
+// 관리자가 "정산 생성"을 실행하면 그 시점까지의 미정산 구매 건들을 모아 하나로 확정합니다.
+model Settlement {
+  id          String    @id @default(cuid())
+  periodYear  Int
+  periodMonth Int // 1~12
+  grossAmount Int // 판매액 합계
+  feeAmount   Int // 플랫폼 수수료 합계
+  netAmount   Int // 크리에이터 지급액 합계 (grossAmount - feeAmount)
+  itemCount   Int       @default(0) // 묶인 구매 건수
+  status      String    @default("pending") // pending(정산 확정, 지급 대기) | paid(지급 완료)
+  // 지급 시점의 계좌 스냅샷 (이후 크리에이터가 계좌를 바꿔도 과거 정산 내역은 유지됩니다)
+  bankSnapshot          String?
+  accountNumberSnapshot String?
+  holderSnapshot        String?
+  paidAt      DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  creatorId String
+  creator   User       @relation(fields: [creatorId], references: [id])
+  purchases Purchase[]
+
+  @@unique([creatorId, periodYear, periodMonth])
+  @@index([status])
 }

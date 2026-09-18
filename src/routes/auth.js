@@ -15,7 +15,7 @@ const authLimiter = rateLimit({
 });
 
 function publicUser(user) {
-  return { id: user.id, email: user.email, name: user.name, isCreator: user.isCreator };
+  return { id: user.id, email: user.email, name: user.name, isCreator: user.isCreator, isAdmin: user.isAdmin };
 }
 
 router.post('/signup', authLimiter, async (req, res) => {

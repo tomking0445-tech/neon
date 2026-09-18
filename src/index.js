@@ -11,6 +11,8 @@ const reviewsRoutes = require('./routes/reviews');
 const postsRoutes = require('./routes/posts');
 const postsTopRoutes = require('./routes/posts-top');
 const commentsRoutes = require('./routes/comments');
+const settlementsRoutes = require('./routes/settlements');
+const adminSettlementsRoutes = require('./routes/admin-settlements');
 
 const app = express();
 
@@ -39,6 +41,8 @@ app.use('/api/contents/:contentId/reviews', reviewsRoutes);
 app.use('/api/contents/:contentId/posts', postsRoutes);
 app.use('/api/posts', postsTopRoutes);
 app.use('/api/comments', commentsRoutes);
+app.use('/api/settlements', settlementsRoutes);
+app.use('/api/admin', adminSettlementsRoutes);
 
 // 프론트엔드(index.html)를 같은 서버에서 서빙합니다. 저장소 루트에 있는 단일 파일이고
 // CSS/JS가 전부 그 안에 인라인이라, 디렉터리 전체를 static으로 열 필요 없이 이 파일 하나만

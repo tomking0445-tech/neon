@@ -1,6 +1,7 @@
 const express = require('express');
 const prisma = require('../db');
 const { requireAuth, optionalAuth } = require('../auth');
+const { computeSplit, PAYMENT_METHODS } = require('../fee');
 
 const router = express.Router();
 
@@ -129,8 +130,19 @@ router.post('/:id/purchase', requireAuth, async (req, res) => {
   const content = await prisma.content.findUnique({ where: { id: req.params.id } });
   if (!content) return res.status(404).json({ error: 'NOT_FOUND' });
 
+  const { method } = req.body || {};
+  const paymentMethod = PAYMENT_METHODS.includes(method) ? method : 'demo';
+  const { feeAmount, netAmount } = computeSplit(content.price);
+
   const purchase = await prisma.purchase.create({
-    data: { contentId: content.id, userId: req.user.id, amount: content.price, method: 'demo' }
+    data: {
+      contentId: content.id,
+      userId: req.user.id,
+      amount: content.price,
+      method: paymentMethod,
+      feeAmount,
+      netAmount
+    }
   });
   res.status(201).json({ purchase, message: '데모 결제입니다. 실제 결제 연동 전에는 청구가 발생하지 않습니다.' });
 });

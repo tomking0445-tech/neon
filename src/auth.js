@@ -42,4 +42,20 @@ function optionalAuth(req, _res, next) {
   next();
 }
 
-module.exports = { signToken, requireAuth, optionalAuth };
+// 관리자 전용 라우트에 사용합니다. requireAuth 다음에 연결하세요.
+// 토큰 발급 시점이 아니라 매 요청마다 DB에서 최신 isAdmin 값을 확인합니다
+// (관리자 권한을 회수했을 때 이미 발급된 토큰으로 계속 접근하는 것을 막기 위함).
+async function requireAdmin(req, res, next) {
+  try {
+    const prisma = require('./db');
+    const user = await prisma.user.findUnique({ where: { id: req.user.id }, select: { isAdmin: true } });
+    if (!user || !user.isAdmin) {
+      return res.status(403).json({ error: 'FORBIDDEN', message: '관리자만 접근할 수 있습니다.' });
+    }
+    next();
+  } catch (error) {
+    next(error);
+  }
+}
+
+module.exports = { signToken, requireAuth, optionalAuth, requireAdmin };

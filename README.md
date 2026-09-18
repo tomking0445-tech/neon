@@ -50,22 +50,17 @@ gh repo create neon-server --private --source=. --remote=origin --push
 
 `PORT`는 Railway가 자동으로 주입하므로 직접 설정하지 않습니다.
 
-## 5. 배포 & 마이그레이션
+## 5. 배포 & 스키마 반영
 
 - Railway가 `npm install` → `postinstall`(`prisma generate`) → `npm start`
-  (`npx prisma migrate deploy && node src/index.js`) 순서로 자동 실행합니다.
-- 즉, **DB 스키마 마이그레이션이 배포될 때마다 자동으로 적용**됩니다. `prisma/migrations` 폴더가
-  비어있는 상태로 처음 배포하면 테이블이 생기지 않으니, 로컬에서 최초 1회만 아래처럼
-  마이그레이션 파일을 만들어서 같이 커밋하세요.
-
-```bash
-# 로컬에 DATABASE_URL(로컬 or Railway 걸로 임시 연결)이 있는 상태에서 1회 실행
-npx prisma migrate dev --name init
-git add prisma/migrations
-git commit -m "add initial migration"
-git push
-```
-
+  (`npx prisma db push --skip-generate && node src/index.js`) 순서로 자동 실행합니다.
+- 이 프로젝트는 `prisma/migrations` 이력 없이 **`prisma db push`로 현재 `schema.prisma`를 DB에
+  직접 동기화**하는 방식을 씁니다. 즉 `schema.prisma`를 수정해서 커밋·배포하면 배포될 때마다
+  자동으로 테이블/컬럼이 그 내용과 일치하도록 반영됩니다. 별도로 마이그레이션 파일을
+  만들거나 커밋할 필요가 없습니다.
+  (참고: 나중에 정식 마이그레이션 이력을 쓰고 싶다면 로컬에서 `npx prisma migrate dev`로
+  `prisma/migrations`를 만들어 커밋하고, `railway.json`/`package.json`의 시작 명령을
+  `npx prisma migrate deploy && node src/index.js`로 바꾸면 됩니다.)
 - 배포 후 Railway 대시보드의 서비스 → **Settings → Deploy → Run Command** 또는
   로컬에서 Railway CLI로 시드를 한 번 실행해 데모 콘텐츠를 채워 넣으세요.
 
@@ -99,6 +94,24 @@ curl https://<your-app>.up.railway.app/api/contents
   - `POST /api/posts/:postId/comments`, `DELETE /api/comments/:commentId`
 - 구매 버튼(`purchase`) → `POST /api/contents/:id/purchase` (지금은 실제 결제 없이 기록만 남기는 스텁)
 
+## 8. 판매 정산 기능
+
+이번에 결제수단 선택, 크리에이터 정산 계좌 등록, 월별 정산 확정/지급, 관리자 CSV 다운로드가 추가됐습니다.
+
+- 수수료율은 기본 20%이며 `PLATFORM_FEE_RATE`(0~1 사이 소수, 예: `0.15`) 환경변수로 바꿀 수 있습니다. 구매 시점 값이
+  `Purchase.feeAmount`/`netAmount`에 스냅샷으로 저장되므로, 나중에 비율을 바꿔도 과거 거래에는 영향이 없습니다.
+- 결제수단은 아직 실제 PG 연동 전 데모 스텁이며 `card | kakaopay | tosspay | bank` 중 하나를 프론트에서 골라 서버에 전달합니다.
+- 정산은 "월별 확정" 방식입니다: 구매 건은 우선 미확정(`settled=false`) 상태로 쌓이고, 관리자가 특정 연월에 대해
+  `POST /api/admin/settlements/generate`를 실행하면 크리에이터별로 `Settlement` 레코드가 만들어지며 해당 구매 건들이
+  `settled=true`로 묶입니다. 같은 연월을 다시 실행해도 이미 정산된 건은 건드리지 않아 안전합니다.
+- 관리자 지정: 로컬 또는 Railway CLI에서 `npm run make-admin -- <email>` (해제하려면 `npm run make-admin -- <email> off`).
+  ```bash
+  railway run npm run make-admin -- me@example.com
+  ```
+- 스키마가 바뀌었습니다(User.isAdmin/정산계좌, Purchase.feeAmount 등, Settlement 모델 신규). 위 5번 항목대로
+  이 프로젝트는 `prisma db push`로 배포 시 자동 반영되므로, 이 커밋을 푸시하기만 하면 됩니다 — 별도
+  마이그레이션 파일을 만들 필요는 없습니다.
+
 ## API 요약
 
 | Method | Path | 인증 | 설명 |
@@ -120,6 +133,14 @@ curl https://<your-app>.up.railway.app/api/contents
 | DELETE | /api/posts/:postId | 필요(본인) | 게시글 삭제 |
 | POST | /api/posts/:postId/comments | 필요 | 댓글 작성 |
 | DELETE | /api/comments/:commentId | 필요(본인) | 댓글 삭제 |
+| GET | /api/settlements/account | 필요 | 내 정산 계좌 조회 |
+| PUT | /api/settlements/account | 필요 | 내 정산 계좌 등록/수정 |
+| GET | /api/settlements/me | 필요 | 미확정 판매 요약 + 내 정산 내역 |
+| GET | /api/admin/settlements/preview | 관리자 | 연월별 미확정 판매 미리보기(크리에이터별 집계) |
+| POST | /api/admin/settlements/generate | 관리자 | 연월 정산 확정 |
+| GET | /api/admin/settlements | 관리자 | 정산 목록 (year, month, status 쿼리) |
+| PUT | /api/admin/settlements/:id/paid | 관리자 | 지급 완료 처리 |
+| GET | /api/admin/settlements/export.csv | 관리자 | 정산 내역 CSV 다운로드 |
 
 ## 보안 관련 남은 할 일
 
